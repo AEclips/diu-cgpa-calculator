@@ -91,12 +91,12 @@ export default function App() {
   });
 
   const [darkMode, setDarkMode] = useState(() => {
-    return localStorage.getItem('unigrade_theme') === 'dark';
+    return localStorage.getItem('unigrade_theme') !== 'light';
   });
 
   const [accentId, setAccentId] = useState(() => {
     const saved = localStorage.getItem('unigrade_accent');
-    return saved && ACCENT_PRESETS[saved] ? saved : 'blue';
+    return saved && ACCENT_PRESETS[saved] ? saved : 'emerald';
   });
 
   const [isTargetModalOpen, setIsTargetModalOpen] = useState(false);
