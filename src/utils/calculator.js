@@ -34,6 +34,7 @@ export function calculateSemesterStats(semester, scale) {
   for (const course of semester.courses) {
     const credits = parseFloat(course.credits);
     if (isNaN(credits) || credits <= 0) continue;
+    if (!course.grade && typeof course.customPoints !== 'number') continue;
 
     const points = typeof course.customPoints === 'number' 
       ? course.customPoints 

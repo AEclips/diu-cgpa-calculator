@@ -15,10 +15,10 @@ export default function ExportReportModal({
   const [isGenerating, setIsGenerating] = useState(false);
   const [info, setInfo] = useState(
     studentInfo || {
-      name: 'Alex Johnson',
-      id: '211-15-4321',
-      university: 'Daffodil International University',
-      major: 'B.Sc. in Computer Science & Engineering',
+      name: '',
+      id: '',
+      university: '',
+      major: '',
       date: new Date().toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'long',

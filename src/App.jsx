@@ -66,7 +66,7 @@ export default function App() {
   const [semesters, setSemesters] = useState(() => {
     return savedData.semesters && savedData.semesters.length > 0
       ? savedData.semesters
-      : SAMPLE_SEMESTERS;
+      : INITIAL_EMPTY_SEMESTERS;
   });
 
   const [activeScaleId, setActiveScaleId] = useState(() => {
@@ -75,13 +75,13 @@ export default function App() {
   });
 
   const [studentInfo, setStudentInfo] = useState(() => {
-    return savedData.studentInfo?.name
+    return savedData.studentInfo?.name || savedData.studentInfo?.id || savedData.studentInfo?.university
       ? savedData.studentInfo
       : {
-          name: 'Alex Johnson',
-          id: '211-15-4321',
-          university: 'Daffodil International University',
-          major: 'B.Sc. in Computer Science & Engineering (CSE)',
+          name: '',
+          id: '',
+          university: '',
+          major: '',
           date: new Date().toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'long',
@@ -151,18 +151,10 @@ export default function App() {
       courses: [
         {
           id: 'c-' + Date.now() + '-1',
-          code: `CSE ${nextNum * 100 + 10}`,
-          title: 'Theory Course',
+          code: '',
+          title: '',
           credits: 3.0,
-          grade: activeScale.grades[0]?.letter || 'A+',
-          isRetake: false
-        },
-        {
-          id: 'c-' + Date.now() + '-2',
-          code: `CSE ${nextNum * 100 + 11}`,
-          title: 'Lab Course',
-          credits: 1.5,
-          grade: activeScale.grades[0]?.letter || 'A+',
+          grade: '',
           isRetake: false
         }
       ]

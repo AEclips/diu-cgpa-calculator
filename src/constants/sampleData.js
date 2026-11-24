@@ -54,9 +54,7 @@ export const INITIAL_EMPTY_SEMESTERS = [
     name: '1st Semester',
     collapsed: false,
     courses: [
-      { id: 'c-1', code: 'CSE 112', title: 'Structured Programming', credits: 3.0, grade: 'A+', isRetake: false },
-      { id: 'c-2', code: 'CSE 113', title: 'Structured Programming Lab', credits: 1.5, grade: 'A+', isRetake: false },
-      { id: 'c-3', code: 'MAT 101', title: 'Mathematics I', credits: 3.0, grade: 'A', isRetake: false }
+      { id: 'c-1', code: '', title: '', credits: 3.0, grade: '', isRetake: false }
     ]
   }
 ];

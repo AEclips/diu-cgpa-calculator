@@ -36,13 +36,12 @@ export default function SemesterCard({
   };
 
   const handleAddCourse = () => {
-    const defaultGrade = activeScale.grades[0]?.letter || 'A+';
     const nextCourse = {
       id: 'c-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
       code: '',
       title: '',
       credits: 3.0,
-      grade: defaultGrade,
+      grade: '',
       isRetake: false
     };
     onUpdate({

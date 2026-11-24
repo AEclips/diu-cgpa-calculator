@@ -42,12 +42,15 @@ export default function CourseRow({ course, activeScale, onUpdate, onRemove }) {
     onUpdate({ ...course, credits: next });
   };
 
-  const currentGradeObj =
-    activeScale.grades.find(
-      (g) => g.letter.toUpperCase() === String(course.grade || '').trim().toUpperCase()
-    ) || activeScale.grades[0];
+  const currentGradeObj = course.grade
+    ? activeScale.grades.find(
+        (g) => g.letter.toUpperCase() === String(course.grade).trim().toUpperCase()
+      ) || null
+    : null;
 
-  const activeDotColor = getGradeDotColor(currentGradeObj?.points ?? 0, maxGpa);
+  const activeDotColor = currentGradeObj
+    ? getGradeDotColor(currentGradeObj.points, maxGpa)
+    : 'var(--text-tertiary)';
 
   return (
     <div className="px-4 sm:px-6 py-3 flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-3 transition-colors hover:bg-[var(--bg-subtle)]/50 focus-within:bg-[var(--bg-subtle)]/70 group">
@@ -128,11 +131,13 @@ export default function CourseRow({ course, activeScale, onUpdate, onRemove }) {
             }}
           >
             <span className="inline-flex items-center gap-1.5">
-              <span
-                className="w-1.5 h-1.5 rounded-full shrink-0"
-                style={{ backgroundColor: activeDotColor }}
-              />
-              <span>
+              {currentGradeObj && (
+                <span
+                  className="w-1.5 h-1.5 rounded-full shrink-0"
+                  style={{ backgroundColor: activeDotColor }}
+                />
+              )}
+              <span style={{ color: currentGradeObj ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
                 {currentGradeObj ? `${currentGradeObj.letter} (${currentGradeObj.points.toFixed(2)})` : 'Grade'}
               </span>
             </span>
