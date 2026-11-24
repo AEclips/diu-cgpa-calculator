@@ -1,176 +1,154 @@
-import React, { useEffect, useState } from 'react';
-import { Award, BookCheck, TrendingUp, Sparkles, Percent, Layers } from 'lucide-react';
+import React from 'react';
+import useAnimatedNumber from '../hooks/useAnimatedNumber';
 
-export default function StatCards({ stats, activeScale }) {
-  const {
-    cgpa,
-    cgpaDisplay,
-    totalCredits,
-    passedCredits,
-    totalQualityPoints,
-    percentage,
-    academicStanding
-  } = stats;
+const STANDING_DOT_COLOR = {
+  emerald: 'var(--positive)',
+  green: 'var(--positive)',
+  blue: 'var(--accent)',
+  amber: 'var(--warning)',
+  rose: 'var(--danger)'
+};
 
-  const [isPulsing, setIsPulsing] = useState(false);
+function cleanStandingLabel(standing) {
+  if (!standing) return null;
+  if (standing.label) {
+    return standing.label.split(' / ')[0];
+  }
+  return standing.badge?.replace(/^[^\w]+/, '').trim() || null;
+}
 
-  // Trigger smooth score animation whenever CGPA changes
-  useEffect(() => {
-    setIsPulsing(true);
-    const t = setTimeout(() => setIsPulsing(false), 450);
-    return () => clearTimeout(t);
-  }, [cgpaDisplay, totalCredits]);
-
+export default function StatCards({ stats, activeScale, semesterCount }) {
   const maxGpa = activeScale?.maxGpa || 4.0;
-  const progressRatio = maxGpa > 0 ? Math.min(100, Math.max(0, (cgpa / maxGpa) * 100)) : 0;
+  const cgpaValue = stats?.cgpa || 0;
+  const animatedCgpa = useAnimatedNumber(cgpaValue, 340);
+  const animatedCredits = useAnimatedNumber(stats?.totalCredits ?? 0, 320);
+  const animatedQualityPoints = useAnimatedNumber(stats?.totalQualityPoints ?? 0, 340);
 
-  const getBadgeColorClasses = (colorName) => {
-    switch (colorName) {
-      case 'emerald':
-        return 'from-emerald-500/20 to-teal-500/20 border-emerald-500/40 text-emerald-700 dark:text-emerald-300 shadow-emerald-500/10';
-      case 'green':
-        return 'from-green-500/20 to-emerald-500/20 border-green-500/40 text-green-700 dark:text-green-300 shadow-green-500/10';
-      case 'blue':
-        return 'from-blue-500/20 to-cyan-500/20 border-blue-500/40 text-blue-700 dark:text-blue-300 shadow-blue-500/10';
-      case 'amber':
-        return 'from-amber-500/20 to-yellow-500/20 border-amber-500/40 text-amber-700 dark:text-amber-300 shadow-amber-500/10';
-      case 'rose':
-        return 'from-rose-500/20 to-red-500/20 border-rose-500/40 text-rose-700 dark:text-rose-300 shadow-rose-500/10';
-      default:
-        return 'from-slate-500/20 to-slate-600/20 border-slate-500/40 text-slate-700 dark:text-slate-300';
-    }
-  };
+  const cgpaDisplay = (stats?.totalCredits ?? 0) > 0 ? animatedCgpa.toFixed(2) : '0.00';
+  const creditsDisplay = Number(animatedCredits.toFixed(1));
+  const qpDisplay = animatedQualityPoints.toFixed(2);
+  const progressPercent = Math.min(100, Math.max(0, (cgpaValue / maxGpa) * 100));
+  const standingText = cleanStandingLabel(stats?.academicStanding);
+  const dotColor = STANDING_DOT_COLOR[stats?.academicStanding?.color] || 'var(--accent)';
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-      
-      {/* Primary CGPA Hero Card (Frosted with Radiant Gradient) */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-600/90 via-teal-600/90 to-emerald-800/90 backdrop-blur-xl border border-white/20 text-white p-6 sm:p-7 shadow-2xl shadow-emerald-950/20 flex flex-col justify-between transition-all duration-300 hover:scale-[1.02]">
-        <div className="absolute top-0 right-0 -mr-8 -mt-8 w-36 h-36 rounded-full bg-white/20 blur-2xl pointer-events-none" />
-        <div className="flex items-center justify-between relative z-10">
-          <span className="text-xs font-bold uppercase tracking-wider text-emerald-100 flex items-center space-x-1.5">
-            <Award className="w-4 h-4" />
-            <span>Cumulative CGPA</span>
-          </span>
-          <span className="text-xs px-2.5 py-0.5 rounded-full bg-white/20 font-semibold backdrop-blur-md border border-white/20">
-            Scale: {maxGpa.toFixed(1)}
-          </span>
-        </div>
-
-        <div className="my-4 flex items-baseline space-x-3 relative z-10">
-          <div className={`text-4xl sm:text-5xl font-black tracking-tight font-mono transition-transform duration-300 ${isPulsing ? 'score-update' : ''}`}>
-            {cgpaDisplay}
-          </div>
-          <div className="text-emerald-200 text-sm font-semibold">
-            / {maxGpa.toFixed(2)}
-          </div>
-        </div>
-
-        {/* Visual Progress Bar */}
-        <div className="relative z-10">
-          <div className="w-full bg-black/25 rounded-full h-2.5 overflow-hidden backdrop-blur-sm p-0.5">
-            <div 
-              className="bg-white h-full rounded-full transition-all duration-700 ease-out shadow-sm shadow-white/50" 
-              style={{ width: `${progressRatio}%` }}
-            />
-          </div>
-          <div className="flex justify-between text-[11px] text-emerald-100 mt-1.5 font-medium">
-            <span>Score Ratio</span>
-            <span className="font-bold font-mono">{progressRatio.toFixed(1)}%</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Total Credits Card (Frosted Glass Panel) */}
-      <div className="glass-panel p-6 sm:p-7 flex flex-col justify-between hover:scale-[1.01]">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center space-x-1.5">
-            <BookCheck className="w-4 h-4 text-emerald-500" />
-            <span>Total Credit Hours</span>
-          </span>
-          <span className="text-xs px-2 py-0.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-semibold border border-emerald-200/50 dark:border-emerald-800/50">
-            Earned: {passedCredits}
-          </span>
-        </div>
-
-        <div className="my-3">
-          <div className={`text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight ${isPulsing ? 'score-update' : ''}`}>
-            {totalCredits} <span className="text-lg font-normal text-slate-500 dark:text-slate-400">credits</span>
-          </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            {totalCredits > 0 
-              ? `${stats.semesterStats.length} semester(s) recorded` 
-              : 'Add courses below to begin'}
-          </p>
-        </div>
-
-        <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center space-x-1">
-          <Layers className="w-3.5 h-3.5 text-slate-400" />
-          <span>Standard degree: ~140-148 credits</span>
-        </div>
-      </div>
-
-      {/* Quality Points Card */}
-      <div className="glass-panel p-6 sm:p-7 flex flex-col justify-between hover:scale-[1.01]">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center space-x-1.5">
-            <TrendingUp className="w-4 h-4 text-teal-500" />
-            <span>Quality Points</span>
-          </span>
-          <span className="text-xs px-2 py-0.5 rounded-lg bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 font-semibold border border-teal-200/50 dark:border-teal-800/50">
-            Credits × GP
-          </span>
-        </div>
-
-        <div className="my-3">
-          <div className={`text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight font-mono ${isPulsing ? 'score-update' : ''}`}>
-            {totalQualityPoints}
-          </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Cumulative weighted score
-          </p>
-        </div>
-
-        <div className="text-[11px] text-slate-500 dark:text-slate-400">
-          {percentage !== null ? (
-            <span className="font-semibold text-teal-600 dark:text-teal-400 flex items-center space-x-1">
-              <Percent className="w-3.5 h-3.5" />
-              <span>Equivalent: {percentage}%</span>
+    <section className="surface-card overflow-hidden animate-soft-enter" aria-label="Cumulative GPA summary">
+      <div className="px-6 py-6 sm:px-8 sm:py-7 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+        {/* Left: Hero CGPA & Standing */}
+        <div>
+          <div className="flex items-baseline gap-2">
+            <span
+              className="text-5xl sm:text-6xl font-bold tracking-[-0.035em] leading-none tabular-nums"
+              style={{ color: 'var(--text-primary)' }}
+            >
+              {cgpaDisplay}
             </span>
-          ) : (
-            <span>Formula: Σ(Credit × Grade Point)</span>
-          )}
+            <span
+              className="text-base sm:text-lg font-medium tabular-nums"
+              style={{ color: 'var(--text-tertiary)' }}
+            >
+              / {maxGpa.toFixed(2)}
+            </span>
+          </div>
+
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <span
+              className="text-xs font-medium"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              Cumulative GPA
+            </span>
+
+            {standingText && (
+              <span
+                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium"
+                style={{
+                  backgroundColor: 'var(--bg-subtle)',
+                  color: 'var(--text-primary)'
+                }}
+              >
+                <span
+                  className="w-1.5 h-1.5 rounded-full shrink-0"
+                  style={{ backgroundColor: dotColor }}
+                />
+                <span>{standingText}</span>
+              </span>
+            )}
+
+            {stats?.percentage != null && (stats?.totalCredits ?? 0) > 0 && (
+              <span
+                className="text-xs font-medium tabular-nums"
+                style={{ color: 'var(--text-tertiary)' }}
+              >
+                {stats.percentage}%
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Right: Scannable Inline Metrics */}
+        <div
+          className="grid grid-cols-3 sm:flex sm:items-center gap-4 sm:gap-6 pt-4 sm:pt-0 border-t sm:border-t-0"
+          style={{ borderColor: 'var(--border-hairline)' }}
+        >
+          <div>
+            <div className="text-[11px] font-medium" style={{ color: 'var(--text-tertiary)' }}>
+              Credits
+            </div>
+            <div
+              className="mt-0.5 text-lg sm:text-xl font-semibold tabular-nums tracking-tight"
+              style={{ color: 'var(--text-primary)' }}
+            >
+              {creditsDisplay}
+            </div>
+          </div>
+
+          <div
+            className="hidden sm:block w-px h-8"
+            style={{ backgroundColor: 'var(--border-hairline)' }}
+          />
+
+          <div>
+            <div className="text-[11px] font-medium" style={{ color: 'var(--text-tertiary)' }}>
+              Quality Points
+            </div>
+            <div
+              className="mt-0.5 text-lg sm:text-xl font-semibold tabular-nums tracking-tight"
+              style={{ color: 'var(--text-primary)' }}
+            >
+              {qpDisplay}
+            </div>
+          </div>
+
+          <div
+            className="hidden sm:block w-px h-8"
+            style={{ backgroundColor: 'var(--border-hairline)' }}
+          />
+
+          <div>
+            <div className="text-[11px] font-medium" style={{ color: 'var(--text-tertiary)' }}>
+              Semesters
+            </div>
+            <div
+              className="mt-0.5 text-lg sm:text-xl font-semibold tabular-nums tracking-tight"
+              style={{ color: 'var(--text-primary)' }}
+            >
+              {semesterCount}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Academic Standing & Honors Card */}
-      <div className="glass-panel p-6 sm:p-7 flex flex-col justify-between hover:scale-[1.01]">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center space-x-1.5">
-            <Sparkles className="w-4 h-4 text-amber-500" />
-            <span>Academic Standing</span>
-          </span>
-        </div>
-
-        <div className="my-3">
-          {academicStanding ? (
-            <div className={`p-3.5 rounded-2xl bg-gradient-to-r border font-bold text-sm sm:text-base shadow-sm ${getBadgeColorClasses(academicStanding.color)}`}>
-              <div className="text-base sm:text-lg">{academicStanding.badge}</div>
-              <div className="text-xs font-medium opacity-90 mt-0.5">{academicStanding.label}</div>
-            </div>
-          ) : (
-            <div className="p-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 text-xs font-medium">
-              Add course grades to view your honors status
-            </div>
-          )}
-        </div>
-
-        <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-between">
-          <span>Graduation Status</span>
-          <span className="font-bold text-emerald-600 dark:text-emerald-400">Active</span>
-        </div>
+      {/* Razor-thin Progress Track */}
+      <div className="h-[3px] w-full" style={{ backgroundColor: 'var(--bg-subtle)' }}>
+        <div
+          className="h-full transition-all duration-500 ease-out"
+          style={{
+            width: `${progressPercent}%`,
+            backgroundColor: 'var(--accent)'
+          }}
+        />
       </div>
-
-    </div>
+    </section>
   );
 }

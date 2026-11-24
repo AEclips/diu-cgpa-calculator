@@ -1,170 +1,247 @@
-import React from 'react';
-import { 
-  GraduationCap, 
-  Moon, 
-  Sun, 
-  Sparkles, 
-  Sliders, 
-  Target, 
-  FileDown, 
-  DatabaseBackup, 
-  RotateCcw,
-  BookOpen,
-  Zap
-} from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { GraduationCap, Target, FileDown, Sun, Moon, ChevronDown, Check } from 'lucide-react';
 import { GRADING_SCALES } from '../constants/gradingScales';
+
+const SCALE_LABELS = {
+  bd_ugc: { short: 'DIU 4.0', full: 'DIU / UGC (4.0)' },
+  '4.0': { short: 'US 4.0', full: 'US Standard (4.0)' },
+  '4.3': { short: '4.3 Scale', full: 'Honors (4.3)' },
+  '5.0': { short: '5.0 Scale', full: '5.0 Scale' },
+  '10.0': { short: '10.0', full: 'Indian UGC (10.0)' }
+};
 
 export default function Header({
   activeScaleId,
   onScaleChange,
-  customScales,
-  onOpenScaleModal,
-  onOpenTargetModal,
-  onOpenPriorModal,
-  onOpenExportModal,
-  onLoadSampleData,
-  onResetData,
-  onBackup,
-  onRestoreClick,
+  onOpenTarget,
+  onOpenExport,
   darkMode,
-  setDarkMode
+  onToggleDarkMode,
+  accentId,
+  accentPresets,
+  onAccentChange
 }) {
-  const allScales = {
-    ...GRADING_SCALES,
-    ...customScales
-  };
+  const [scaleMenuOpen, setScaleMenuOpen] = useState(false);
+  const [accentMenuOpen, setAccentMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+  const accentRef = useRef(null);
+
+  useEffect(() => {
+    if (!scaleMenuOpen && !accentMenuOpen) return;
+    const handleClickOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setScaleMenuOpen(false);
+      }
+      if (accentRef.current && !accentRef.current.contains(e.target)) {
+        setAccentMenuOpen(false);
+      }
+    };
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        setScaleMenuOpen(false);
+        setAccentMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [scaleMenuOpen, accentMenuOpen]);
+
+  const currentLabel = SCALE_LABELS[activeScaleId] || { short: activeScaleId, full: activeScaleId };
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-slate-200/80 dark:border-slate-800/80 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl transition-colors no-print">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 sm:h-20">
-          
-          {/* Logo & Title */}
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-emerald-600 via-teal-500 to-emerald-400 flex items-center justify-center shadow-lg shadow-emerald-500/20 text-white">
-              <GraduationCap className="w-6 h-6 sm:w-7 sm:h-7" />
+    <header
+      className="sticky top-0 z-30 border-b backdrop-blur-xl no-print"
+      style={{
+        backgroundColor: 'color-mix(in srgb, var(--bg-canvas) 82%, transparent)',
+        borderColor: 'var(--border-hairline)'
+      }}
+    >
+      <div className="max-w-3xl mx-auto px-3 sm:px-6 h-14 flex items-center justify-between gap-2">
+        {/* Brand + Scale Selector */}
+        <div className="flex items-center gap-1.5 sm:gap-3 min-w-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            <div
+              className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center shrink-0"
+              style={{ backgroundColor: 'var(--accent-soft)', color: 'var(--accent)' }}
+            >
+              <GraduationCap className="w-3.5 h-3.5 sm:w-4 sm:h-4" strokeWidth={1.75} />
             </div>
-            <div>
-              <div className="flex items-center space-x-2">
-                <span className="font-extrabold text-xl sm:text-2xl tracking-tight bg-gradient-to-r from-slate-900 via-emerald-800 to-teal-700 dark:from-white dark:via-emerald-300 dark:to-teal-400 bg-clip-text text-transparent">
-                  UniGrade
-                </span>
-                <span className="text-[10px] sm:text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">
-                  BD & Global
-                </span>
+            <span
+              className="font-semibold text-[13px] sm:text-[15px] tracking-[-0.015em] whitespace-nowrap"
+              style={{ color: 'var(--text-primary)' }}
+            >
+              UniGrade
+            </span>
+          </div>
+
+          <div className="relative min-w-0 shrink" ref={menuRef}>
+            <button
+              type="button"
+              onClick={() => {
+                setAccentMenuOpen(false);
+                setScaleMenuOpen((prev) => !prev);
+              }}
+              aria-haspopup="listbox"
+              aria-expanded={scaleMenuOpen}
+              aria-label="Grading scale"
+              className="tactile-press inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-full border text-[11px] sm:text-xs font-medium whitespace-nowrap transition-colors hover:bg-[var(--bg-hover)]"
+              style={{
+                backgroundColor: 'var(--bg-surface)',
+                borderColor: 'var(--border-hairline)',
+                color: 'var(--text-secondary)'
+              }}
+            >
+              <span className="sm:hidden">{currentLabel.short}</span>
+              <span className="hidden sm:inline">{currentLabel.full}</span>
+              <ChevronDown
+                className={`w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0 transition-transform duration-150 ${
+                  scaleMenuOpen ? 'rotate-180' : ''
+                }`}
+                style={{ color: 'var(--text-tertiary)' }}
+                strokeWidth={1.75}
+              />
+            </button>
+
+            {scaleMenuOpen && (
+              <div
+                role="listbox"
+                aria-label="Select grading scale"
+                className="absolute left-0 mt-1.5 w-52 p-1.5 rounded-2xl border z-50 animate-soft-enter"
+                style={{
+                  backgroundColor: 'var(--bg-surface)',
+                  borderColor: 'var(--border-hairline)',
+                  boxShadow: 'var(--shadow-modal)'
+                }}
+              >
+                {Object.values(GRADING_SCALES).map((scale) => {
+                  const isSelected = scale.id === activeScaleId;
+                  const label = SCALE_LABELS[scale.id]?.full || scale.name;
+                  return (
+                    <button
+                      key={scale.id}
+                      type="button"
+                      role="option"
+                      aria-selected={isSelected}
+                      onClick={() => {
+                        onScaleChange(scale.id);
+                        setScaleMenuOpen(false);
+                      }}
+                      className="w-full px-3 py-2 rounded-xl text-left text-xs font-medium flex items-center justify-between gap-2 transition-colors hover:bg-[var(--bg-subtle)]"
+                      style={{
+                        color: isSelected ? 'var(--accent)' : 'var(--text-primary)'
+                      }}
+                    >
+                      <span>{label}</span>
+                      {isSelected && <Check className="w-3.5 h-3.5 shrink-0" strokeWidth={2} />}
+                    </button>
+                  );
+                })}
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">
-                DIU, BRAC, NSU & International University CGPA Calculator
-              </p>
-            </div>
+            )}
+          </div>
+        </div>
+
+        {/* Quiet Action Controls */}
+        <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
+          <button
+            type="button"
+            onClick={onOpenTarget}
+            className="tactile-press inline-flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-medium whitespace-nowrap transition-colors hover:bg-[var(--bg-hover)]"
+            style={{ color: 'var(--text-primary)' }}
+          >
+            <Target className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--accent)' }} strokeWidth={1.75} />
+            <span>Target</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={onOpenExport}
+            className="tactile-press inline-flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-medium whitespace-nowrap transition-colors hover:bg-[var(--bg-hover)]"
+            style={{ color: 'var(--text-primary)' }}
+          >
+            <FileDown className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--text-secondary)' }} strokeWidth={1.75} />
+            <span className="hidden sm:inline">Export PDF</span>
+            <span className="sm:hidden">PDF</span>
+          </button>
+
+          {/* Accent Color Picker */}
+          <div className="relative" ref={accentRef}>
+            <button
+              type="button"
+              onClick={() => {
+                setScaleMenuOpen(false);
+                setAccentMenuOpen((prev) => !prev);
+              }}
+              aria-haspopup="listbox"
+              aria-expanded={accentMenuOpen}
+              aria-label="Accent color"
+              title="Accent color"
+              className="tactile-press w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center shrink-0 transition-colors hover:bg-[var(--bg-hover)]"
+            >
+              <span
+                className="w-3 h-3 rounded-full ring-2 ring-black/10 dark:ring-white/15"
+                style={{ backgroundColor: 'var(--accent)' }}
+              />
+            </button>
+
+            {accentMenuOpen && accentPresets && (
+              <div
+                role="listbox"
+                aria-label="Select accent color"
+                className="absolute right-0 mt-1.5 flex items-center gap-2 p-2 rounded-full border z-50 animate-soft-enter"
+                style={{
+                  backgroundColor: 'var(--bg-surface)',
+                  borderColor: 'var(--border-hairline)',
+                  boxShadow: 'var(--shadow-modal)'
+                }}
+              >
+                {Object.values(accentPresets).map((preset) => {
+                  const isSelected = preset.id === accentId;
+                  const swatchColor = darkMode ? preset.dark.accent : preset.light.accent;
+                  return (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      role="option"
+                      aria-selected={isSelected}
+                      aria-label={preset.label}
+                      title={preset.label}
+                      onClick={() => {
+                        onAccentChange(preset.id);
+                        setAccentMenuOpen(false);
+                      }}
+                      className="tactile-press w-5 h-5 rounded-full transition-transform hover:scale-110 flex items-center justify-center"
+                      style={{
+                        backgroundColor: swatchColor,
+                        boxShadow: isSelected
+                          ? `0 0 0 2px var(--bg-surface), 0 0 0 3.5px ${swatchColor}`
+                          : 'inset 0 0 0 1px rgba(0,0,0,0.1)'
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            )}
           </div>
 
-          {/* Scale Selector & Major Actions */}
-          <div className="flex items-center space-x-2 sm:space-x-3">
-            
-            {/* Scale Picker */}
-            <div className="flex items-center bg-slate-100 dark:bg-slate-800/90 rounded-xl p-1 border border-slate-200 dark:border-slate-700/80">
-              <select
-                value={activeScaleId}
-                onChange={(e) => onScaleChange(e.target.value)}
-                className="bg-transparent text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200 px-2 py-1 focus:outline-none cursor-pointer max-w-[130px] sm:max-w-[200px] truncate"
-                title="Select Grading Scale"
-              >
-                <optgroup label="Academic Scales">
-                  {Object.values(GRADING_SCALES).map((sc) => (
-                    <option key={sc.id} value={sc.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
-                      {sc.name}
-                    </option>
-                  ))}
-                </optgroup>
-                {Object.keys(customScales).length > 0 && (
-                  <optgroup label="Custom Scales">
-                    {Object.values(customScales).map((sc) => (
-                      <option key={sc.id} value={sc.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
-                        {sc.name} (Custom)
-                      </option>
-                    ))}
-                  </optgroup>
-                )}
-              </select>
-
-              <button
-                onClick={onOpenScaleModal}
-                className="p-1.5 text-slate-500 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition"
-                title="Customize / Edit Grading Scale"
-              >
-                <Sliders className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Quick Prior CGPA Button */}
-            <button
-              onClick={onOpenPriorModal}
-              className="hidden sm:flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-medium bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/50 dark:hover:bg-amber-900/60 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/60 transition shadow-sm"
-              title="Quick Prior CGPA Estimator"
-            >
-              <Zap className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-              <span className="hidden md:inline font-semibold">Prior GPA</span>
-            </button>
-
-            {/* Target CGPA Planner Button */}
-            <button
-              onClick={onOpenTargetModal}
-              className="flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-medium bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/50 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60 transition shadow-sm"
-              title="Target CGPA Planner"
-            >
-              <Target className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-              <span className="hidden md:inline font-semibold">Target Planner</span>
-            </button>
-
-            {/* Export PDF Button */}
-            <button
-              onClick={onOpenExportModal}
-              className="flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-medium bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/50 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/60 transition shadow-sm"
-              title="Export Transcript PDF"
-            >
-              <FileDown className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-              <span className="hidden md:inline font-semibold">Transcript</span>
-            </button>
-
-            {/* Quick Actions Dropdown / Group */}
-            <div className="hidden lg:flex items-center space-x-1 border-l border-slate-200 dark:border-slate-800 pl-2">
-              <button
-                onClick={onLoadSampleData}
-                className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center space-x-1"
-                title="Load DIU Sample Courses"
-              >
-                <BookOpen className="w-3.5 h-3.5" />
-                <span>DIU Demo</span>
-              </button>
-
-              <button
-                onClick={onBackup}
-                className="p-2 rounded-lg text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-                title="Backup Data (JSON)"
-              >
-                <DatabaseBackup className="w-4 h-4" />
-              </button>
-
-              <button
-                onClick={onResetData}
-                className="p-2 rounded-lg text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-                title="Reset All Semesters"
-              >
-                <RotateCcw className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Dark / Light Mode Toggle */}
-            <button
-              onClick={() => setDarkMode(!darkMode)}
-              className="p-2 sm:p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700/80 transition"
-              title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-            >
-              {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-700" />}
-            </button>
-
-          </div>
+          <button
+            type="button"
+            onClick={onToggleDarkMode}
+            aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+            title={darkMode ? 'Light mode' : 'Dark mode'}
+            className="tactile-press w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center shrink-0 transition-colors hover:bg-[var(--bg-hover)]"
+            style={{ color: 'var(--text-secondary)' }}
+          >
+            {darkMode ? (
+              <Sun className="w-4 h-4" strokeWidth={1.75} />
+            ) : (
+              <Moon className="w-4 h-4" strokeWidth={1.75} />
+            )}
+          </button>
         </div>
       </div>
     </header>

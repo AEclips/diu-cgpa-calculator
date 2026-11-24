@@ -1,16 +1,5 @@
-import React, { useState } from 'react';
-import { 
-  X, 
-  FileDown, 
-  Printer, 
-  GraduationCap, 
-  User, 
-  Building, 
-  Award, 
-  Calendar,
-  CheckCircle2,
-  Loader2
-} from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, FileDown, Printer, Loader2 } from 'lucide-react';
 import { generatePdfFromElement } from '../utils/pdfExport';
 import { getGradePoints } from '../utils/calculator';
 
@@ -24,13 +13,28 @@ export default function ExportReportModal({
   onUpdateStudentInfo
 }) {
   const [isGenerating, setIsGenerating] = useState(false);
-  const [info, setInfo] = useState(studentInfo || {
-    name: 'Alex Johnson',
-    id: '211-15-4321',
-    university: 'Daffodil International University',
-    major: 'B.Sc. in Computer Science & Engineering',
-    date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
-  });
+  const [info, setInfo] = useState(
+    studentInfo || {
+      name: 'Alex Johnson',
+      id: '211-15-4321',
+      university: 'Daffodil International University',
+      major: 'B.Sc. in Computer Science & Engineering',
+      date: new Date().toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      })
+    }
+  );
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -45,10 +49,11 @@ export default function ExportReportModal({
   const handleDownloadPdf = async () => {
     try {
       setIsGenerating(true);
-      await generatePdfFromElement('transcript-report-card', `UniGrade_Transcript_${info.name.replace(/\s+/g, '_')}.pdf`);
+      const safeName = (info.name || 'Student').replace(/\s+/g, '_');
+      await generatePdfFromElement('transcript-report-card', `UniGrade_Transcript_${safeName}.pdf`);
     } catch (err) {
       console.error('PDF Generation failed:', err);
-      alert('Failed to generate PDF. You can also use the Print button to Save as PDF.');
+      alert('Failed to generate PDF. You can use Print to save as PDF.');
     } finally {
       setIsGenerating(false);
     }
@@ -58,213 +63,252 @@ export default function ExportReportModal({
     window.print();
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/70 backdrop-blur-sm animate-fade-in overflow-y-auto">
-      
-      <div className="relative w-full max-w-4xl bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden my-8 animate-slide-up flex flex-col max-h-[90vh]">
-        
-        {/* Header Controls */}
-        <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between no-print shrink-0">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
-              <FileDown className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="font-bold text-base sm:text-lg">Academic Grade Summary & PDF Transcript</h3>
-              <p className="text-xs text-slate-400">Generate an official printable report card</p>
-            </div>
-          </div>
+  const standingLabel = stats.academicStanding?.label?.split(' / ')[0] || 'Good Standing';
 
-          <div className="flex items-center space-x-2">
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/40 backdrop-blur-sm"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="export-modal-title"
+    >
+      <div
+        className="modal-sheet w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh] animate-soft-enter"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div
+          className="px-6 py-4 flex items-center justify-between border-b shrink-0 no-print"
+          style={{ borderColor: 'var(--border-hairline)' }}
+        >
+          <h3
+            id="export-modal-title"
+            className="text-base font-semibold tracking-[-0.015em]"
+            style={{ color: 'var(--text-primary)' }}
+          >
+            Export Transcript
+          </h3>
+
+          <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={handlePrint}
-              className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold flex items-center space-x-1.5 transition"
-              title="Print directly or Save as PDF"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors hover:bg-[var(--bg-hover)]"
+              style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-subtle)' }}
             >
-              <Printer className="w-3.5 h-3.5" />
+              <Printer className="w-3.5 h-3.5" strokeWidth={1.75} />
               <span>Print</span>
             </button>
 
             <button
+              type="button"
               onClick={handleDownloadPdf}
               disabled={isGenerating}
-              className="px-4 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold flex items-center space-x-1.5 transition shadow-md shadow-indigo-600/20 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+              style={{ backgroundColor: 'var(--accent)' }}
             >
               {isGenerating ? (
                 <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>Generating PDF...</span>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" strokeWidth={1.75} />
+                  <span>Generating...</span>
                 </>
               ) : (
                 <>
-                  <FileDown className="w-3.5 h-3.5" />
+                  <FileDown className="w-3.5 h-3.5" strokeWidth={1.75} />
                   <span>Download PDF</span>
                 </>
               )}
             </button>
 
             <button
+              type="button"
               onClick={onClose}
-              className="p-1.5 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition ml-2"
+              aria-label="Close modal"
+              className="w-7 h-7 rounded-full flex items-center justify-center transition-colors hover:bg-[var(--bg-hover)] ml-1"
+              style={{ color: 'var(--text-secondary)' }}
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" strokeWidth={1.75} />
             </button>
           </div>
         </div>
 
-        {/* Scrollable Preview Area */}
-        <div className="p-4 sm:p-8 overflow-y-auto flex-1 bg-slate-100 dark:bg-slate-950/50">
-          
-          {/* Metadata Customization form */}
-          <div className="mb-6 p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm no-print">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-3">
-              Transcript Header Information
-            </span>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-              <div>
-                <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 block mb-1">Student Name</label>
-                <input
-                  type="text"
-                  value={info.name}
-                  onChange={(e) => handleInfoChange('name', e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-medium dark:text-white"
-                />
-              </div>
-              <div>
-                <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 block mb-1">Student ID / Roll No.</label>
-                <input
-                  type="text"
-                  value={info.id}
-                  onChange={(e) => handleInfoChange('id', e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-medium dark:text-white"
-                />
-              </div>
-              <div>
-                <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 block mb-1">University / Institute</label>
-                <input
-                  type="text"
-                  value={info.university}
-                  onChange={(e) => handleInfoChange('university', e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-medium dark:text-white"
-                />
-              </div>
-              <div>
-                <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 block mb-1">Degree / Program</label>
-                <input
-                  type="text"
-                  value={info.major}
-                  onChange={(e) => handleInfoChange('major', e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-medium dark:text-white"
-                />
-              </div>
+        {/* Scrollable Content */}
+        <div
+          className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-5"
+          style={{ backgroundColor: 'var(--bg-subtle)' }}
+        >
+          {/* Compact Inline Student Inputs */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 no-print">
+            <div>
+              <label className="block text-[11px] font-medium mb-1" style={{ color: 'var(--text-tertiary)' }}>
+                Student Name
+              </label>
+              <input
+                type="text"
+                value={info.name}
+                onChange={(e) => handleInfoChange('name', e.target.value)}
+                className="w-full px-3 py-1.5 rounded-xl border text-xs font-medium focus:outline-none focus:border-[var(--accent)]"
+                style={{
+                  backgroundColor: 'var(--bg-surface)',
+                  borderColor: 'var(--border-hairline)',
+                  color: 'var(--text-primary)'
+                }}
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-medium mb-1" style={{ color: 'var(--text-tertiary)' }}>
+                Student ID
+              </label>
+              <input
+                type="text"
+                value={info.id}
+                onChange={(e) => handleInfoChange('id', e.target.value)}
+                className="w-full px-3 py-1.5 rounded-xl border text-xs font-mono-code focus:outline-none focus:border-[var(--accent)]"
+                style={{
+                  backgroundColor: 'var(--bg-surface)',
+                  borderColor: 'var(--border-hairline)',
+                  color: 'var(--text-primary)'
+                }}
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-medium mb-1" style={{ color: 'var(--text-tertiary)' }}>
+                University
+              </label>
+              <input
+                type="text"
+                value={info.university}
+                onChange={(e) => handleInfoChange('university', e.target.value)}
+                className="w-full px-3 py-1.5 rounded-xl border text-xs font-medium focus:outline-none focus:border-[var(--accent)]"
+                style={{
+                  backgroundColor: 'var(--bg-surface)',
+                  borderColor: 'var(--border-hairline)',
+                  color: 'var(--text-primary)'
+                }}
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-medium mb-1" style={{ color: 'var(--text-tertiary)' }}>
+                Program
+              </label>
+              <input
+                type="text"
+                value={info.major}
+                onChange={(e) => handleInfoChange('major', e.target.value)}
+                className="w-full px-3 py-1.5 rounded-xl border text-xs font-medium focus:outline-none focus:border-[var(--accent)]"
+                style={{
+                  backgroundColor: 'var(--bg-surface)',
+                  borderColor: 'var(--border-hairline)',
+                  color: 'var(--text-primary)'
+                }}
+              />
             </div>
           </div>
 
-          {/* Actual Printable / PDF Target Card */}
-          <div 
-            id="transcript-report-card" 
-            className="bg-white text-slate-900 p-8 sm:p-10 rounded-2xl shadow-xl border border-slate-200 print-page max-w-3xl mx-auto"
+          {/* Minimal White A4 Transcript Preview */}
+          <div
+            id="transcript-report-card"
+            className="bg-white text-[#1D1D1F] p-7 sm:p-9 rounded-2xl border border-black/10 shadow-sm max-w-3xl mx-auto"
           >
-            {/* Institution & Document Header */}
-            <div className="border-b-2 border-slate-900 pb-6 mb-6">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h1 className="text-xl sm:text-2xl font-black uppercase tracking-tight text-slate-900">
-                    {info.university || 'Daffodil International University'}
-                  </h1>
-                  <p className="text-sm font-semibold text-emerald-700 mt-0.5">
-                    Official Grade Summary & Cumulative Performance Report
-                  </p>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Grading Scale: {activeScale.name} (Max: {activeScale.maxGpa.toFixed(2)})
-                  </p>
-                </div>
-                <div className="text-right">
-                  <div className="inline-flex items-center space-x-1.5 px-3 py-1 bg-slate-100 rounded-lg text-xs font-bold text-slate-700">
-                    <GraduationCap className="w-4 h-4 text-emerald-600" />
-                    <span>UNIGRADE REPORT</span>
-                  </div>
-                  <div className="text-[11px] text-slate-400 mt-2 font-mono">
-                    Date: {info.date}
-                  </div>
-                </div>
+            {/* Document Header */}
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 pb-5 border-b border-black/10">
+              <div>
+                <h1 className="text-lg font-bold tracking-tight text-[#1D1D1F]">
+                  {info.university || 'University'}
+                </h1>
+                <p className="text-xs text-[#6E6E73] mt-0.5">
+                  Academic Grade Summary · {activeScale.name}
+                </p>
               </div>
-
-              {/* Student Metadata Box */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6 p-4 bg-slate-50 rounded-xl border border-slate-200 text-xs">
-                <div>
-                  <span className="text-slate-400 block text-[10px] uppercase font-bold">Student Name</span>
-                  <span className="font-bold text-slate-900">{info.name || '—'}</span>
-                </div>
-                <div>
-                  <span className="text-slate-400 block text-[10px] uppercase font-bold">Student ID</span>
-                  <span className="font-mono font-bold text-slate-900">{info.id || '—'}</span>
-                </div>
-                <div className="col-span-2">
-                  <span className="text-slate-400 block text-[10px] uppercase font-bold">Program / Major</span>
-                  <span className="font-bold text-slate-900">{info.major || '—'}</span>
-                </div>
+              <div className="sm:text-right text-xs text-[#6E6E73] tabular-nums">
+                <div className="font-semibold text-[#1D1D1F]">Unofficial Transcript</div>
+                <div className="mt-0.5">{info.date}</div>
               </div>
             </div>
 
-            {/* Overall Score Banner */}
-            <div className="grid grid-cols-4 gap-3 p-4 mb-6 bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-xl text-center">
+            {/* Student & Cumulative Summary Strip */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 py-4 border-b border-black/10 text-xs">
               <div>
-                <span className="text-[10px] uppercase tracking-wider text-slate-400 block">Overall CGPA</span>
-                <span className="text-2xl font-black font-mono text-emerald-400">{stats.cgpaDisplay}</span>
+                <span className="block text-[10px] uppercase tracking-wider text-[#86868B] font-medium">
+                  Student
+                </span>
+                <span className="font-semibold text-[#1D1D1F]">{info.name || '—'}</span>
+                <span className="block text-[11px] font-mono text-[#6E6E73]">{info.id || '—'}</span>
               </div>
               <div>
-                <span className="text-[10px] uppercase tracking-wider text-slate-400 block">Total Credits</span>
-                <span className="text-2xl font-black font-mono">{stats.totalCredits}</span>
+                <span className="block text-[10px] uppercase tracking-wider text-[#86868B] font-medium">
+                  Program
+                </span>
+                <span className="font-medium text-[#1D1D1F]">{info.major || '—'}</span>
               </div>
               <div>
-                <span className="text-[10px] uppercase tracking-wider text-slate-400 block">Quality Points</span>
-                <span className="text-2xl font-black font-mono">{stats.totalQualityPoints}</span>
+                <span className="block text-[10px] uppercase tracking-wider text-[#86868B] font-medium">
+                  Credits / Points
+                </span>
+                <span className="font-semibold text-[#1D1D1F] tabular-nums">
+                  {stats.totalCredits} cr · {(stats.totalQualityPoints ?? 0).toFixed(2)} pts
+                </span>
+                <span className="block text-[11px] text-[#6E6E73]">{standingLabel}</span>
               </div>
-              <div>
-                <span className="text-[10px] uppercase tracking-wider text-slate-400 block">Academic Standing</span>
-                <span className="text-xs font-bold text-amber-300 block mt-1">
-                  {stats.academicStanding?.label || 'Good Standing'}
+              <div className="sm:text-right">
+                <span className="block text-[10px] uppercase tracking-wider text-[#86868B] font-medium">
+                  Cumulative GPA
+                </span>
+                <span className="text-2xl font-bold text-[#0071E3] tabular-nums tracking-tight">
+                  {stats.cgpaDisplay}
+                </span>
+                <span className="text-xs text-[#86868B] ml-1 tabular-nums">
+                  / {activeScale.maxGpa.toFixed(1)}
                 </span>
               </div>
             </div>
 
-            {/* Semesters & Courses Breakdown */}
-            <div className="space-y-6">
+            {/* Semesters Breakdown */}
+            <div className="mt-5 space-y-5">
               {semesters.map((sem, sIdx) => {
                 const semStat = stats.semesterStats[sIdx] || {};
-
                 return (
-                  <div key={sem.id || sIdx} className="border border-slate-200 rounded-xl overflow-hidden">
-                    <div className="bg-slate-100 px-4 py-2 flex items-center justify-between border-b border-slate-200 font-bold text-xs">
-                      <span className="text-slate-900">{sem.name}</span>
-                      <div className="flex space-x-3 text-slate-600">
-                        <span>Credits: {semStat.credits || 0}</span>
-                        <span className="text-emerald-700 font-extrabold">SGPA: {semStat.sgpaDisplay || '0.00'}</span>
+                  <div key={sem.id || sIdx} className="border border-black/10 rounded-xl overflow-hidden">
+                    <div className="bg-[#F5F5F7] px-4 py-2 flex items-center justify-between border-b border-black/10 text-xs">
+                      <span className="font-semibold text-[#1D1D1F]">{sem.name}</span>
+                      <div className="flex items-center gap-3 tabular-nums">
+                        <span className="text-[#6E6E73]">{semStat.credits || 0} cr</span>
+                        <span className="font-semibold text-[#0071E3]">
+                          SGPA {semStat.sgpaDisplay || '0.00'}
+                        </span>
                       </div>
                     </div>
 
                     <table className="w-full text-left text-xs border-collapse">
                       <thead>
-                        <tr className="border-b border-slate-100 text-[10px] uppercase text-slate-400 font-semibold bg-slate-50">
-                          <th className="py-1.5 px-3">Code</th>
-                          <th className="py-1.5 px-3">Course Title</th>
-                          <th className="py-1.5 px-3 text-center w-16">Credits</th>
-                          <th className="py-1.5 px-3 text-center w-16">Grade</th>
-                          <th className="py-1.5 px-3 text-right w-20">Points</th>
+                        <tr className="border-b border-black/5 text-[10px] uppercase tracking-wider text-[#86868B]">
+                          <th className="py-1.5 px-3 font-medium w-24">Code</th>
+                          <th className="py-1.5 px-3 font-medium">Course</th>
+                          <th className="py-1.5 px-3 text-right font-medium w-16">Cr</th>
+                          <th className="py-1.5 px-3 text-right font-medium w-16">Grade</th>
+                          <th className="py-1.5 px-3 text-right font-medium w-16">Pts</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100">
+                      <tbody className="divide-y divide-black/5">
                         {sem.courses?.map((c, cIdx) => {
                           const pts = getGradePoints(c.grade, activeScale);
                           const cr = parseFloat(c.credits) || 0;
                           return (
                             <tr key={c.id || cIdx}>
-                              <td className="py-1.5 px-3 font-mono font-medium text-slate-800">{c.code || '-'}</td>
-                              <td className="py-1.5 px-3 text-slate-700">{c.title || '-'}</td>
-                              <td className="py-1.5 px-3 text-center font-bold text-slate-800">{c.credits}</td>
-                              <td className="py-1.5 px-3 text-center font-bold text-emerald-700">{c.grade}</td>
-                              <td className="py-1.5 px-3 text-right font-mono text-slate-600">{(cr * pts).toFixed(2)}</td>
+                              <td className="py-1.5 px-3 font-mono text-[11px] text-[#6E6E73]">
+                                {c.code || '—'}
+                              </td>
+                              <td className="py-1.5 px-3 text-[#1D1D1F]">{c.title || '—'}</td>
+                              <td className="py-1.5 px-3 text-right tabular-nums text-[#1D1D1F]">
+                                {cr.toFixed(1)}
+                              </td>
+                              <td className="py-1.5 px-3 text-right font-semibold tabular-nums text-[#1D1D1F]">
+                                {c.grade}
+                              </td>
+                              <td className="py-1.5 px-3 text-right tabular-nums text-[#6E6E73]">
+                                {(cr * pts).toFixed(2)}
+                              </td>
                             </tr>
                           );
                         })}
@@ -275,18 +319,13 @@ export default function ExportReportModal({
               })}
             </div>
 
-            {/* Footer Signoff */}
-            <div className="mt-8 pt-4 border-t border-slate-200 flex justify-between items-center text-[10px] text-slate-400">
-              <span>Generated via UniGrade BD CGPA Calculator System</span>
-              <span>Valid Academic Standing Summary</span>
+            <div className="mt-6 pt-3 border-t border-black/10 flex justify-between items-center text-[10px] text-[#86868B]">
+              <span>Generated with UniGrade</span>
+              <span>Scale max {activeScale.maxGpa.toFixed(2)}</span>
             </div>
-
           </div>
-
         </div>
-
       </div>
-
     </div>
   );
 }

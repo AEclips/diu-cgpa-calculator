@@ -1,235 +1,187 @@
-import React, { useState } from 'react';
-import { 
-  ChevronDown, 
-  ChevronRight, 
-  Plus, 
-  Trash2, 
-  Copy, 
-  Edit3, 
-  Check, 
-  GraduationCap,
-  Layers,
-  BookOpen
-} from 'lucide-react';
+import React from 'react';
+import { ChevronDown, Copy, Trash2, Plus } from 'lucide-react';
 import CourseRow from './CourseRow';
 import { calculateSemesterStats } from '../utils/calculator';
+import useAnimatedNumber from '../hooks/useAnimatedNumber';
 
 export default function SemesterCard({
   semester,
-  semesterIndex,
   activeScale,
-  onUpdateSemester,
-  onDeleteSemester,
-  onDuplicateSemester
+  onUpdate,
+  onDelete,
+  onDuplicate
 }) {
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [tempName, setTempName] = useState(semester.name);
+  const semStats = calculateSemesterStats(semester, activeScale);
+  const animatedSgpa = useAnimatedNumber(semStats.sgpa || 0, 300);
+  const sgpaDisplay = semStats.credits > 0 ? animatedSgpa.toFixed(2) : '0.00';
+  const isCollapsed = Boolean(semester.collapsed);
 
-  const stats = calculateSemesterStats(semester, activeScale);
-  const maxGpa = activeScale?.maxGpa || 4.0;
-  const isCollapsed = semester.collapsed ?? false;
-
-  const toggleCollapse = () => {
-    onUpdateSemester({
-      ...semester,
-      collapsed: !isCollapsed
-    });
+  const handleToggleCollapse = () => {
+    onUpdate({ ...semester, collapsed: !isCollapsed });
   };
 
-  const handleSaveName = () => {
-    setIsEditingName(false);
-    onUpdateSemester({
-      ...semester,
-      name: tempName.trim() || `Semester ${semesterIndex + 1}`
-    });
+  const handleRename = (name) => {
+    onUpdate({ ...semester, name });
+  };
+
+  const handleCourseUpdate = (courseIdx, updatedCourse) => {
+    const nextCourses = [...semester.courses];
+    nextCourses[courseIdx] = updatedCourse;
+    onUpdate({ ...semester, courses: nextCourses });
+  };
+
+  const handleCourseRemove = (courseIdx) => {
+    const nextCourses = semester.courses.filter((_, idx) => idx !== courseIdx);
+    onUpdate({ ...semester, courses: nextCourses });
   };
 
   const handleAddCourse = () => {
-    const newCourse = {
-      id: 'c-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5),
-      code: `CS ${(semesterIndex + 1) * 100 + (semester.courses.length + 1) * 10}`,
-      title: 'New Course',
-      credits: 3,
-      grade: activeScale?.grades?.[0]?.letter || 'A',
+    const defaultGrade = activeScale.grades[0]?.letter || 'A+';
+    const nextCourse = {
+      id: 'c-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+      code: '',
+      title: '',
+      credits: 3.0,
+      grade: defaultGrade,
       isRetake: false
     };
-
-    onUpdateSemester({
+    onUpdate({
       ...semester,
       collapsed: false,
-      courses: [...(semester.courses || []), newCourse]
+      courses: [...semester.courses, nextCourse]
     });
-  };
-
-  const handleUpdateCourse = (courseIndex, updatedCourse) => {
-    const newCourses = [...semester.courses];
-    newCourses[courseIndex] = updatedCourse;
-    onUpdateSemester({
-      ...semester,
-      courses: newCourses
-    });
-  };
-
-  const handleDeleteCourse = (courseIndex) => {
-    const newCourses = semester.courses.filter((_, idx) => idx !== courseIndex);
-    onUpdateSemester({
-      ...semester,
-      courses: newCourses
-    });
-  };
-
-  // Score badge tone
-  const getSgpaTone = (sgpa) => {
-    const ratio = maxGpa > 0 ? sgpa / maxGpa : 0;
-    if (ratio >= 0.875) return 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800';
-    if (ratio >= 0.75) return 'bg-teal-100 dark:bg-teal-950/80 text-teal-800 dark:text-teal-300 border-teal-300 dark:border-teal-800';
-    if (ratio >= 0.6) return 'bg-blue-100 dark:bg-blue-950/80 text-blue-800 dark:text-blue-300 border-blue-300 dark:border-blue-800';
-    if (ratio >= 0.5) return 'bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800';
-    return 'bg-rose-100 dark:bg-rose-950/80 text-rose-800 dark:text-rose-300 border-rose-300 dark:border-rose-800';
   };
 
   return (
-    <div className="glass-panel rounded-2xl overflow-hidden transition-all duration-200 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700">
-      
-      {/* Semester Header Card */}
-      <div className="px-4 sm:px-6 py-4 bg-slate-50/90 dark:bg-slate-850/90 border-b border-slate-200/80 dark:border-slate-800/80 flex flex-wrap items-center justify-between gap-3">
-        
-        {/* Left Side: Collapse toggle & Name editor */}
-        <div className="flex items-center space-x-3">
+    <article className="surface-card animate-soft-enter">
+      {/* Semester Header */}
+      <div className="px-3.5 sm:px-6 py-3 sm:py-3.5 flex items-center justify-between gap-1.5 sm:gap-3">
+        <div className="flex items-center gap-1 sm:gap-2 flex-1 min-w-0">
           <button
-            onClick={toggleCollapse}
-            className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700/50 transition"
-            title={isCollapsed ? "Expand Semester" : "Collapse Semester"}
+            type="button"
+            onClick={handleToggleCollapse}
+            aria-expanded={!isCollapsed}
+            aria-label={isCollapsed ? 'Expand semester' : 'Collapse semester'}
+            className="tactile-press w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center shrink-0 transition-colors hover:bg-[var(--bg-hover)]"
+            style={{ color: 'var(--text-secondary)' }}
           >
-            {isCollapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+            <ChevronDown
+              className={`w-4 h-4 transition-transform duration-200 ${isCollapsed ? '-rotate-90' : ''}`}
+              strokeWidth={1.75}
+            />
           </button>
 
-          {isEditingName ? (
-            <div className="flex items-center space-x-2">
-              <input
-                type="text"
-                value={tempName}
-                onChange={(e) => setTempName(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSaveName()}
-                autoFocus
-                className="bg-white dark:bg-slate-900 border border-emerald-500 rounded-lg px-2.5 py-1 text-sm font-bold text-slate-800 dark:text-white focus:outline-none"
-              />
-              <button
-                onClick={handleSaveName}
-                className="p-1 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition"
-              >
-                <Check className="w-4 h-4" />
-              </button>
-            </div>
-          ) : (
-            <div className="flex items-center space-x-2 group cursor-pointer" onClick={() => setIsEditingName(true)}>
-              <h3 className="font-bold text-base sm:text-lg text-slate-900 dark:text-slate-100 tracking-tight">
-                {semester.name}
-              </h3>
-              <Edit3 className="w-3.5 h-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-            </div>
-          )}
+          <input
+            type="text"
+            value={semester.name}
+            onChange={(e) => handleRename(e.target.value)}
+            aria-label="Semester name"
+            className="flex-1 min-w-0 text-[13px] sm:text-[15px] font-semibold tracking-[-0.01em] px-1.5 sm:px-2 py-1 rounded-lg bg-transparent border border-transparent hover:border-[var(--border-hairline)] focus:bg-[var(--bg-subtle)] focus:border-[var(--accent)] focus:outline-none transition-colors"
+            style={{ color: 'var(--text-primary)' }}
+          />
         </div>
 
-        {/* Right Side: SGPA Badge, Credits, and Action Controls */}
-        <div className="flex items-center space-x-2 sm:space-x-3">
-          
-          {/* Credits Counter */}
-          <div className="flex items-center space-x-1 text-xs font-semibold px-2.5 py-1 rounded-lg bg-slate-200/60 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-            <Layers className="w-3.5 h-3.5 text-slate-400" />
-            <span>{stats.credits} Credits</span>
-          </div>
-
-          {/* SGPA Score Badge */}
-          <div className={`flex items-center space-x-1.5 text-xs sm:text-sm font-extrabold px-3 py-1 rounded-xl border shadow-sm ${getSgpaTone(stats.sgpa)}`}>
-            <span>SGPA:</span>
-            <span className="font-mono text-sm sm:text-base">{stats.sgpaDisplay}</span>
-          </div>
-
-          {/* Duplicate Semester */}
-          <button
-            onClick={onDuplicateSemester}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700/50 transition"
-            title="Duplicate Semester"
+        {/* Semester Summary & Actions */}
+        <div className="flex items-center gap-1 sm:gap-2.5 shrink-0">
+          <span
+            className="hidden sm:inline text-xs font-medium tabular-nums"
+            style={{ color: 'var(--text-tertiary)' }}
           >
-            <Copy className="w-4 h-4" />
-          </button>
+            {semStats.courseCount} {semStats.courseCount === 1 ? 'course' : 'courses'} · {semStats.credits} cr
+          </span>
 
-          {/* Delete Semester */}
-          <button
-            onClick={onDeleteSemester}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition"
-            title="Delete Semester"
+          <span
+            className="px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-[11px] sm:text-xs font-semibold tabular-nums whitespace-nowrap"
+            style={{
+              backgroundColor: 'var(--accent-soft)',
+              color: 'var(--accent)'
+            }}
           >
-            <Trash2 className="w-4 h-4" />
-          </button>
+            SGPA {sgpaDisplay}
+          </span>
+
+          <div className="flex items-center gap-0.5">
+            <button
+              type="button"
+              onClick={onDuplicate}
+              aria-label="Duplicate semester"
+              title="Duplicate semester"
+              className="tactile-press w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center transition-colors opacity-55 hover:opacity-100 hover:bg-[var(--bg-hover)]"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              <Copy className="w-3.5 h-3.5" strokeWidth={1.75} />
+            </button>
+
+            <button
+              type="button"
+              onClick={onDelete}
+              aria-label="Delete semester"
+              title="Delete semester"
+              className="tactile-press w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center transition-colors opacity-55 hover:opacity-100 hover:bg-[var(--danger-soft)] hover:text-[var(--danger)]"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              <Trash2 className="w-3.5 h-3.5" strokeWidth={1.75} />
+            </button>
+          </div>
         </div>
-
       </div>
 
-      {/* Accordion Body (Courses Table) */}
+      {/* Course Table Body */}
       {!isCollapsed && (
-        <div className="p-3 sm:p-5">
-          {(!semester.courses || semester.courses.length === 0) ? (
-            <div className="py-8 text-center flex flex-col items-center justify-center">
-              <BookOpen className="w-8 h-8 text-slate-300 dark:text-slate-600 mb-2" />
-              <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
-                No courses added to this semester yet.
-              </p>
-              <button
-                onClick={handleAddCourse}
-                className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center space-x-1.5 transition shadow-sm"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Add First Course</span>
-              </button>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-slate-200/80 dark:border-slate-800 text-[11px] uppercase tracking-wider text-slate-400 font-semibold">
-                    <th className="py-2 px-3 text-center w-10">#</th>
-                    <th className="py-2 px-3">Course Code & Title</th>
-                    <th className="py-2 px-3 w-36">Credit Hours</th>
-                    <th className="py-2 px-3 w-40">Grade</th>
-                    <th className="py-2 px-3 text-right hidden md:table-cell w-28">Quality Pts</th>
-                    <th className="py-2 px-3 text-center w-12">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {semester.courses.map((course, cIdx) => (
-                    <CourseRow
-                      key={course.id || cIdx}
-                      index={cIdx}
-                      course={course}
-                      activeScale={activeScale}
-                      onUpdate={(updated) => handleUpdateCourse(cIdx, updated)}
-                      onDelete={() => handleDeleteCourse(cIdx)}
-                    />
-                  ))}
-                </tbody>
-              </table>
-
-              {/* Add Course Footer Action */}
-              <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/60 flex flex-wrap items-center justify-between gap-2">
-                <button
-                  onClick={handleAddCourse}
-                  className="px-3.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60 text-xs font-semibold flex items-center space-x-1.5 transition"
-                >
-                  <Plus className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                  <span>Add Course</span>
-                </button>
-
-                <div className="text-xs text-slate-400 dark:text-slate-500 font-mono">
-                  Semester Quality Points: <span className="font-bold text-slate-700 dark:text-slate-300">{stats.qualityPoints}</span>
-                </div>
+        <div className="border-t" style={{ borderColor: 'var(--border-hairline)' }}>
+          {semester.courses.length > 0 && (
+            <div
+              className="hidden sm:flex items-center justify-between px-6 py-2 text-[11px] font-medium uppercase tracking-wider border-b"
+              style={{
+                color: 'var(--text-tertiary)',
+                borderColor: 'var(--border-hairline)',
+                backgroundColor: 'var(--bg-subtle)'
+              }}
+            >
+              <span>Course</span>
+              <div className="flex items-center gap-3 pr-9">
+                <span className="w-[84px] text-center">Credits</span>
+                <span className="w-[104px] text-center">Grade</span>
+                <span className="w-11 text-right">Pts</span>
               </div>
             </div>
           )}
+
+          {semester.courses.length === 0 ? (
+            <div
+              className="px-6 py-8 text-center text-xs"
+              style={{ color: 'var(--text-tertiary)' }}
+            >
+              No courses in this semester yet. Add a course below to start calculating SGPA.
+            </div>
+          ) : (
+            <div className="[&>*+*]:border-t [&>*+*]:border-[var(--border-hairline)]">
+              {semester.courses.map((course, idx) => (
+                <CourseRow
+                  key={course.id}
+                  course={course}
+                  activeScale={activeScale}
+                  onUpdate={(updated) => handleCourseUpdate(idx, updated)}
+                  onRemove={() => handleCourseRemove(idx)}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Add Course Footer */}
+          <div className="border-t" style={{ borderColor: 'var(--border-hairline)' }}>
+            <button
+              type="button"
+              onClick={handleAddCourse}
+              className="tactile-press w-full py-2.5 px-6 rounded-b-[20px] flex items-center justify-center gap-1.5 text-xs font-medium transition-colors hover:bg-[var(--bg-subtle)]"
+              style={{ color: 'var(--accent)' }}
+            >
+              <Plus className="w-3.5 h-3.5" strokeWidth={2} />
+              <span>Add course</span>
+            </button>
+          </div>
         </div>
       )}
-
-    </div>
+    </article>
   );
 }
